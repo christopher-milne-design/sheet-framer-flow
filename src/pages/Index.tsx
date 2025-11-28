@@ -64,16 +64,53 @@ const Index = () => {
 
   const handleExportToSheets = async () => {
     setIsExporting(true);
-    
-    // TODO: Implement Google Sheets API integration
-    // For now, just simulate the export
-    setTimeout(() => {
-      setIsExporting(false);
+
+    try {
+      // Prepare image metadata for export
+      const imageData = images.map((img) => ({
+        name: img.name,
+        size: img.size,
+        width: img.dimensions?.width || 0,
+        height: img.dimensions?.height || 0,
+        url: img.preview, // In a real app, this would be a permanent URL
+      }));
+
+      const response = await fetch(
+        `https://lgrvldcwnfeyqsnhkoxd.supabase.co/functions/v1/export-to-sheets`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ images: imageData }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to export to Google Sheets");
+      }
+
+      const result = await response.json();
+
       toast({
-        title: "Export functionality",
-        description: "Google Sheets integration will be set up next. For now, image data is prepared for export.",
+        title: "Export successful! 🎉",
+        description: `${result.imageCount} images exported to Google Sheets`,
       });
-    }, 1500);
+
+      // Open the spreadsheet in a new tab
+      if (result.url) {
+        window.open(result.url, "_blank");
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      toast({
+        title: "Export failed",
+        description: error instanceof Error ? error.message : "An error occurred during export",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
